@@ -1,0 +1,159 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:testing/counter_cubit.dart';
+
+void main() {
+  runApp(CounterApp());
+}
+
+class CounterApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        home: Scaffold(
+      appBar: AppBar(
+        title: Text('MyCours'),
+      ),
+      body: Text(''),
+      floatingActionButton: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 5.0),
+            child: FloatingActionButton(
+              child: const Icon(Icons.add),
+              onPressed: () => context.read<CounterCubit>().increment(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5.0),
+            child: FloatingActionButton(
+              child: const Icon(Icons.remove),
+              onPressed: () => context.read<CounterCubit>().decrement(),
+            ),
+          ),
+        ],
+      ),
+    ));
+  }
+}
+
+///////////////////////////////////////////
+import 'package:flutter/material.dart';
+import 'package:testing/app/abstracts/data_base.dart';
+
+typedef DataBuilder<T> = T Function();
+typedef DataDisposer<T> = Function(T);
+
+class _DataProviderInherited<T> extends InheritedWidget {
+
+  final T data;
+
+  _DataProviderInherited({Key? key, required this.data, required Widget child}) : super(key: key, child: child);
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
+}
+
+class DataProvider<T extends DataBase> extends StatefulWidget {
+
+  final Widget child;
+  final DataBuilder<T> dataBuilder;
+  final DataDisposer<T>? dataDisposer;
+
+  const DataProvider({Key? key, required this.child, required this.dataBuilder, this.dataDisposer}) : super(key: key);
+
+  static T of<T extends DataBase>(BuildContext buildContext) {
+    _DataProviderInherited<T> providerInherited = buildContext.getElementForInheritedWidgetOfExactType<_DataProviderInherited<T>>()?.widget as _DataProviderInherited<T>;
+
+    return providerInherited.data;
+  }
+
+  @override
+  _DataProviderState<T> createState() => _DataProviderState<T>();
+}
+
+class _DataProviderState<T extends DataBase> extends State<DataProvider<T>> {
+
+  late T data;
+
+  @override
+  void initState() {
+    super.initState();
+
+    data = widget.dataBuilder();
+  }
+
+  @override
+  void dispose() {
+    if (widget.dataDisposer != null) {
+      widget.dataDisposer!(data);
+    } else {
+      data.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _DataProviderInherited(data: data, child: widget.child);
+  }
+}
+///////////////////////////////////////////////
+import 'package:flutter/material.dart';
+import 'package:testing/app/abstracts/data_base.dart';
+import 'data_builder.dart';
+
+class _DataProviderInherited<V extends DataBase> extends InheritedWidget {
+
+  final V dataRepository;
+
+  _DataProviderInherited({Key? key, required this.dataRepository, required Widget dataBuilder}) : super(key: key, child: dataBuilder);
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
+}
+
+class DataProvider<V extends DataBase> extends StatefulWidget {
+  final V dataRepository;
+  final Widget dataBuilder;
+
+  const DataProvider({Key? key, required this.dataRepository, required this.dataBuilder})
+      : super(key: key);
+
+  @override
+  _DataProviderState<V> createState() => _DataProviderState<V>();
+
+  static V of<V extends DataBase>(BuildContext buildContext) {
+    _DataProviderInherited<V> providerInherited = buildContext.getElementForInheritedWidgetOfExactType<_DataProviderInherited<V>>()?.widget as _DataProviderInherited<V>;
+
+    return providerInherited.dataRepository;
+  }
+}
+
+class _DataProviderState<V extends DataBase> extends State<DataProvider<V>> {
+  late V dataRepository;
+
+  @override
+  void initState() {
+    super.initState();
+
+    dataRepository = widget.dataRepository;
+    dataRepository.initData();
+  }
+
+  @override
+  void dispose() {
+    dataRepository.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _DataProviderInherited<V>(
+        dataRepository: dataRepository, dataBuilder: widget.dataBuilder);
+  }
+}
+
+
